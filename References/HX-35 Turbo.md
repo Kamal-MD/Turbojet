@@ -14,3 +14,6 @@
 **Note:**
 + Turbine Inducer is the where the gas/fluid enters the turbine wheel
 + Turbine Exducer is where it exits the turbine wheel (where turbine inducer diameter is generally larger than exducer diameter)
+
+  ![HX35 Turbine inlet](/images/HX35.png)\
+  ![HX35 compressor outlet](/images/HX35_comp_side.jpg)
