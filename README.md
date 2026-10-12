@@ -60,6 +60,7 @@ Wall-cooling air: not yet allocated (0%).
 | Check | Result |
 |---|---|
 | Benchmark: propane-air, φ = 1, 298 K, 1 atm | 2265.7 K vs. 2260 ± 30 K: PASS |
-| Primary zone dissociation | Hand overshoots Cantera by 214 K |
+| Primary zone dissociation | Hand overshoots Cantera by 214 K (So we will use Cantera value of T(pz)=2337K)|
 | Equilibrium CO, primary → secondary | 1.27% → 26.7 ppm |
 Note: Not for flight
+
