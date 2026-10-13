@@ -52,6 +52,21 @@ OXIDIZER = "O2:1, N2:3.76"  # air as a molar O2/N2 mixture
 # =============================================================================
 
 
+# =============================================================================
+# LINER PRESSURE DROP AND HOLE SIZING INPUTS  (added; existing inputs above unchanged)
+# =============================================================================
+dP_liner_fraction = 0.04        # -, liner pressure drop as a fraction of P3 (design choice)
+dP_sweep = [0.03, 0.04, 0.05]   # -, dP fractions to compare in the report
+Cd = 0.6                        # -, discharge coefficient, sharp-edged hole value (assumed; real range ~0.5-0.8)
+R_air = 287.05                  # J/kg·K, gas constant for air
+d_min_mm = 2.5                  # mm, smallest practical hole (not below plate thickness)
+d_max_mm = 15.0                 # mm, largest practical hole
+d_step_mm = 0.5                 # mm, diameter increment available for drilling
+liner_diameter_mm = None        # mm, not chosen yet; when None, skip the per-row fit check
+spacing_factor = 3.0            # -, min center-to-center spacing, in hole diameters
+# =============================================================================
+
+
 OUT_DIR = Path(__file__).parent / "output"
 gas = ct.Solution(MECH)  # one Cantera gas object, reused everywhere
 
@@ -399,8 +414,183 @@ def main():
     L += [f"- {c}" for c in checks]
     L.append("")
     L.append(f"Plot saved: {plot_path.relative_to(Path(__file__).parent.parent).as_posix()}")
+    L += liner_section(T3, P3, split)  # added: liner pressure drop and hole areas
 
     write_report(L, OUT_DIR / "chamber_calc_results.md")
+
+
+# =============================================================================
+# Liner pressure drop and hole areas  (added below the existing functions)
+# =============================================================================
+HOLE_ZONES = ("primary", "secondary", "dilution", "cooling")
+
+
+def air_density(P, T, R):
+    """Air density from the ideal-gas law, ρ = P/(R·T).
+
+    Evaluated at T3 and P3: the air sitting in the annulus just before it
+    passes through the liner holes.
+    """
+    return P / (R * T)
+
+
+def jet_velocity(rho, dP):
+    """Ideal speed of the air jet through a liner hole, V = sqrt(2·ΔP/ρ).
+
+    Bernoulli: the whole liner pressure drop is turned into jet kinetic energy,
+    ΔP = ½·ρ·V². Higher ΔP means faster jets that penetrate deeper into the hot gas.
+    """
+    return np.sqrt(2 * dP / rho)
+
+
+def hole_area_for_flow(mdot, rho, dP, Cd):
+    """Geometric hole area needed to pass mass flow mdot, A = mdot / (Cd·sqrt(2·ρ·ΔP)).
+
+    From mdot = Cd·A·sqrt(2·ρ·ΔP). Cd corrects for the jet narrowing after it
+    leaves the hole (vena contracta), so the real hole must be larger than the
+    ideal flow area.
+    """
+    return mdot / (Cd * np.sqrt(2 * rho * dP))
+
+
+def zone_hole_areas(m_air, split, rho, dP, Cd):
+    """Hole area per zone (m²), each sized for the air ADDED in that zone.
+
+    Every hole sees the same annulus air (same ρ) and the same liner ΔP, so the
+    areas are in the same proportion as the air shares from air_split().
+    Cooling is included only when cooling_fraction > 0.
+    """
+    areas = {}
+    for zone in HOLE_ZONES:
+        if zone == "cooling" and not split["cooling"] > 0:
+            continue
+        areas[zone] = hole_area_for_flow(split[zone] * m_air, rho, dP, Cd)
+    return areas
+
+
+def candidate_table(A_zone):
+    """Reference table of possible hole patterns that give area A_zone (m²).
+
+    For each even hole count n from 4 to 24: the exact diameter for n equal round
+    holes, d = sqrt(4·A/(n·π)), the nearest drillable diameter on the d_step_mm
+    grid, and the area error that rounding causes. Status is OK when the drilled
+    diameter lies inside [d_min_mm, d_max_mm], else OUT. If liner_diameter_mm is
+    set, also gives how many holes fit around one circumference at the minimum
+    spacing and how many rows n holes would need. Does NOT choose a pattern.
+    """
+    rows = []
+    for n in range(4, 25, 2):
+        d_exact = np.sqrt(4 * A_zone / (n * np.pi)) * 1000          # mm
+        d_drill = np.floor(d_exact / d_step_mm + 0.5) * d_step_mm   # nearest grid value, mm
+        A_drill = n * np.pi / 4 * (d_drill / 1000) ** 2
+        err = (A_drill / A_zone - 1) * 100
+        status = "OK" if d_min_mm <= d_drill <= d_max_mm else "OUT"
+        row = {"n": n, "d_exact": d_exact, "d_drill": d_drill, "err": err, "status": status}
+        if liner_diameter_mm is not None:
+            per_row = int(np.floor(np.pi * liner_diameter_mm / (spacing_factor * d_drill)))
+            row["per_row"] = per_row
+            row["rows"] = int(np.ceil(n / per_row)) if per_row > 0 else None
+        rows.append(row)
+    return rows
+
+
+def liner_section(T3, P3, split):
+    """Report lines for the liner pressure drop and hole-area section, including
+    its PASS/WARN checks. Uses T3, P3 and the air split already computed in main()."""
+    rho3 = air_density(P3, T3, R_air)
+    cm2 = 1e4  # m² -> cm²
+
+    L = [""]
+    L.append("## Liner pressure drop and hole areas")
+    L.append("")
+    L += md_table(["Input", "Value"], [
+        ["P3", f"{P3:,.0f} Pa"],
+        ["T3", f"{T3:.2f} K"],
+        ["rho3 = P3/(R_air·T3)", f"{rho3:.3f} kg/m³ (R_air = {R_air} J/kg·K)"],
+        ["Cd", f"{Cd} (assumed, sharp-edged hole)"],
+        ["Design dP fraction", f"{dP_liner_fraction * 100:g} % of P3"],
+    ])
+    L.append("")
+
+    # --- dP comparison -------------------------------------------------------
+    zones = [z for z in HOLE_ZONES if z != "cooling" or split["cooling"] > 0]
+    L.append("### dP comparison")
+    L.append("")
+    rows = []
+    for frac in dP_sweep:
+        dP = frac * P3
+        areas = zone_hole_areas(m_air, split, rho3, dP, Cd)
+        A_tot = hole_area_for_flow(m_air, rho3, dP, Cd)
+        mark = " (design)" if abs(frac - dP_liner_fraction) < 1e-12 else ""
+        rows.append([f"{frac * 100:g} %{mark}", f"{dP:,.0f}", f"{dP / 1000:.2f}",
+                     f"{jet_velocity(rho3, dP):.1f}", f"{A_tot * cm2:.2f}"]
+                    + [f"{areas[z] * cm2:.2f}" for z in zones])
+    L += md_table(["dP / P3", "dP (Pa)", "dP (kPa)", "Jet velocity (m/s)", "Total area (cm²)"]
+                  + [f"{z.capitalize()} (cm²)" for z in zones], rows)
+    L.append("")
+
+    # --- Design point --------------------------------------------------------
+    dP = dP_liner_fraction * P3
+    areas = zone_hole_areas(m_air, split, rho3, dP, Cd)
+    A_tot = hole_area_for_flow(m_air, rho3, dP, Cd)
+    L.append(f"### Design point (dP = {dP_liner_fraction * 100:g} % of P3 = {dP:,.0f} Pa, "
+             f"jet velocity {jet_velocity(rho3, dP):.1f} m/s)")
+    L.append("")
+    rows = [[z.capitalize(), f"{split[z] * 100:.1f}", f"{split[z] * m_air:.4f}",
+             f"{areas[z] * cm2:.2f}"] for z in zones]
+    share_sum = sum(split[z] for z in zones)
+    A_sum = sum(areas.values())
+    rows.append(["Total", f"{share_sum * 100:.1f}", f"{share_sum * m_air:.4f}", f"{A_sum * cm2:.2f}"])
+    L += md_table(["Zone", "Air share %", "Air flow (kg/s)", "Hole area (cm²)"], rows)
+    L.append("")
+
+    # --- Candidate tables ----------------------------------------------------
+    L.append("### Hole candidates at design dP (reference only, nothing chosen)")
+    L.append("")
+    L.append(f"Drill grid {d_step_mm} mm; OK = drilled diameter within "
+             f"[{d_min_mm}, {d_max_mm}] mm. Area error = drilled area vs required area.")
+    if liner_diameter_mm is None:
+        L.append("Per-row fit skipped: liner_diameter_mm = None (placeholder, not chosen yet).")
+    else:
+        L.append(f"Per-row fit: liner diameter {liner_diameter_mm} mm, "
+                 f"min spacing {spacing_factor} × d.")
+    for z in zones:
+        L.append("")
+        L.append(f"#### {z.capitalize()} (required area {areas[z] * cm2:.2f} cm²)")
+        L.append("")
+        header = ["Holes", "d exact (mm)", "d drilled (mm)", "Area error", "Status"]
+        if liner_diameter_mm is not None:
+            header += ["Max holes/row", "Rows needed"]
+        rows = []
+        for r in candidate_table(areas[z]):
+            row = [r["n"], f"{r['d_exact']:.2f}", f"{r['d_drill']:.1f}",
+                   f"{r['err']:+.1f} %", r["status"]]
+            if liner_diameter_mm is not None:
+                row += [r["per_row"], "—" if r["rows"] is None else r["rows"]]
+            rows.append(row)
+        L += md_table(header, rows)
+    L.append("")
+
+    # --- Checks --------------------------------------------------------------
+    checks = []
+    sum_err = abs(A_sum / A_tot - 1) * 100
+    checks.append(f"{'PASS' if sum_err < 0.1 else 'WARN'}  Zone areas sum to "
+                  f"{A_sum * cm2:.3f} cm² vs total {A_tot * cm2:.3f} cm² "
+                  f"(difference {sum_err:.2e} %, limit 0.1 %)")
+    for z in zones:
+        area_ratio = areas[z] / A_tot
+        ratio_err = abs(area_ratio / split[z] - 1) * 100
+        checks.append(f"{'PASS' if ratio_err < 0.1 else 'WARN'}  {z.capitalize()}: area share "
+                      f"{area_ratio * 100:.2f} % vs air share {split[z] * 100:.2f} % "
+                      f"(difference {ratio_err:.2e} %, limit 0.1 %)")
+    if liner_diameter_mm is None:
+        checks.append("INFO  Hole counts and diameters not chosen: liner diameter not set.")
+    else:
+        checks.append("INFO  Hole counts and diameters not chosen: candidate tables are reference only.")
+    L.append("### Liner checks")
+    L.append("")
+    L += [f"- {c}" for c in checks]
+    return L
 
 
 if __name__ == "__main__":
