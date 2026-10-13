@@ -37,13 +37,18 @@ Key points:
 
 ### Zones
 
-| Zone | φ | Cum. air | Air added | T (Cantera) | Role |
-|---|---|---|---|---|---|
-| Primary | 1.0 | 18.9% | 18.9% | 2337 K | Stable flame in recirculation bubble |
-| Secondary | 0.6 (provisional) | 31.5% | 12.6% | 1777 K | Burn out CO |
-| Dilution | 0.189 | 100% | 68.5% | 880 K target | Cool to T4, even out profile |
+| Zone | φ | Cum. air | Air added (zone holes) | Cooling air along wall *(new)* | T (Cantera) | Role |
+|---|---|---|---|---|---|---|
+| Primary | 1.0 | 18.9% | 18.9% | 5.0% | 2337 K | Stable flame in recirculation bubble |
+| Secondary | 0.6 (provisional) | 31.5% | 12.6% | 3.0% | 1777 K | Burn out CO |
+| Dilution | 0.189 | 100% | 58.5% | 2.0% | 880 K target | Cool to T4, even out profile |
+| **Total** | | | **90%** | **10%** | | |
 
-Wall-cooling air: not yet allocated (0%).
+Wall-cooling air *(new)*: 10% of total air, taken entirely from the dilution holes (68.5% → 58.5%).
+Cooling air is assumed to stay along the inner wall as a film and not take part in any zone's φ.
+It rejoins the gas before the turbine, so φ_overall, T4, and the primary and secondary results are unchanged.
+The 5 / 3 / 2% distribution is provisional, weighted toward the hottest wall. Film-forming geometry
+(splash ring, deflector lip, or angled holes) is not yet designed.
 
 ### Limits and margins *(new)*
 
@@ -62,5 +67,5 @@ Wall-cooling air: not yet allocated (0%).
 | Benchmark: propane-air, φ = 1, 298 K, 1 atm | 2265.7 K vs. 2260 ± 30 K: PASS |
 | Primary zone dissociation | Hand overshoots Cantera by 214 K (So we will use Cantera value of T(pz)=2337K)|
 | Equilibrium CO, primary → secondary | 1.27% → 26.7 ppm |
-Note: Not for flight
 
+Note: Not for flight
