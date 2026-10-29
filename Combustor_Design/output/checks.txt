@@ -10,6 +10,16 @@ PASS    Hole area secondary                           14 holes = 222.7 mm2 vs ta
 PASS    Hole area dilution                            14 holes = 1099.6 mm2 vs target 1105.5 (-0.54 %, tol 3 %)
 PASS    Hole area total                               1742.0 mm2 vs 1741.0 mm2 (+0.06 %)
 PASS    No hole overlaps hole / bolt / spacer         min ligament 3.00 mm (cooling @ 0.0 deg vs spacer @ 0.0 deg)
+WARN    Clocking cooling / primary                    min angular separation 0.000 deg
+WARN    Clocking cooling / secondary                  min angular separation 0.000 deg
+PASS    Clocking cooling / dilution_1                 min angular separation 6.429 deg
+PASS    Clocking cooling / dilution_2                 min angular separation 6.429 deg
+PASS    Clocking primary / secondary                  min angular separation 2.571 deg
+PASS    Clocking primary / dilution_1                 min angular separation 1.286 deg
+PASS    Clocking primary / dilution_2                 min angular separation 1.286 deg
+PASS    Clocking secondary / dilution_1               min angular separation 6.429 deg
+PASS    Clocking secondary / dilution_2               min angular separation 6.429 deg
+PASS    Clocking dilution_1 / dilution_2              min angular separation 25.714 deg
 PASS    Zone holes clear of ring overlap              first zone-hole edge x = 58.75 > ring end 30.0 (margin 28.75 mm)
 PASS    Cooling row inside film path                  cooling holes x 17.0-19.0 within overlap 1.0-30.0; drilled through liner only (ring not cut); film runs 11.0 mm to the slot exit
 PASS    Bolt row inside overlap, upstream of cooling  bolt/spacer x 4.0-14.0, cooling starts 17.0
@@ -22,30 +32,34 @@ PASS    Row primary inside primary zone               x = 62.0 within 0-70
 PASS    Row secondary inside secondary zone           x = 115.0 within 70-130
 PASS    Row dilution_1 inside dilution zone           x = 145.0 within 130-250
 PASS    Row dilution_2 inside dilution zone           x = 170.0 within 130-250
-PASS    Stub clear of flange hardware                 stub edge x = 35.00, flange back x = 16.00, clearance 19.00 >= hw_clear 19.0
-PASS    stub_x formula                                stub_x = 2.0 + 14.0 + 19.0 + 27.5 = 62.50 (~65)
-PASS    head_L formula                                head_L = 62.50 + 27.5 + 10 = 100.00 (~100)
+PASS    Stub clear of flange hardware                 stub edge x = 36.00, flange back x = 17.00, clearance 19.00 >= hw_clear 19.0
+PASS    stub_x formula                                stub_x = 2.0 + 15.0 + 19.0 + 25.0 = 61.00
+PASS    head_L formula                                head_L = 61.00 + 25.0 + 10 = 96.00
 PASS    Stub clear of step plate                      10.00 mm weld room
 PASS    Residence length primary                      V = 31.0 m/s, L_req = tau*V = 2.0 ms x V = 61.9 mm <= 70 mm (tau = 2.26 ms)
 PASS    Residence length secondary                    V = 38.3 m/s, L_req = tau*V = 1.5 ms x V = 57.4 mm <= 60 mm (tau = 1.57 ms)
 PASS    Dilution mixing length                        L_dil = 120 mm = 1.69 D (target 1.5-1.8 D), V 38.3 -> 58.7 m/s, tau = 2.48 ms
 INFO    Residence time at liner_L                     tau = 6.30 ms over liner_L = 250 mm (plug flow, film neglected)
-PASS    Slip joint axial growth                       liner +3.14, casing +0.49 -> net 2.65 mm < 5.0 mm clearance; cold engagement 15.0 mm
-PASS    Slip joint radial growth                      net diametral growth 0.81 mm < diametral clearance 1.0 mm (margin 0.19 mm)
+WARN    Slip joint hot radial clearance               liner hot diameter growth 0.959 mm; hot radial clearance = 0.5 - 0.479 = 0.021 mm (flag < 0.3); sleeve assumed at T3 = 400 K, its growth not credited (with it: 0.095 mm)
+WARN    Slip sleeve leak area                         120.3 mm2 = 6.91 % of liner hole area 1742.0 mm2 (flag > 5 %)
+PASS    Slip joint hot axial clearance                liner hot length growth 3.14 mm; hot axial clearance = 5.0 - 3.14 = 1.86 mm (casing growth not credited); cold engagement 15.0 mm
+INFO    Inlet stub velocity                           V = m_dot / (rho3 * pi * stub_ID^2 / 4) = 62.9 m/s (stub_ID 45.0 mm), q = 4195 Pa
+INFO    Step plate to secondary row                   x_sec - (head_L + step_t) = 115.0 - 100.0 = 15.0 mm
+INFO    Stub far edge to step plate                   head_L - (stub_x + stub_OD/2) = 96.0 - 86.0 = 10.0 mm
 PASS    No part interference                          max overlap 0.0000 mm3 
-PASS    Fluid volume is one solid                     1 solid(s), 2674.0 cm3
+PASS    Fluid volume is one solid                     1 solid(s), 2633.0 cm3
 
-32 PASS, 0 WARN, 2 INFO
+39 PASS, 4 WARN, 5 INFO
 
 Part summary (mass: 304 density; gaskets are graphite, mass not meaningful)
 part                  volume cm3  mass kg
-01_blind_flange           604.84    4.796
+01_blind_flange           648.05    5.139
 02_flange_gasket           54.96        -
-03_slipon_flange          384.69    3.051
-04_head_pipe               79.06    0.627
-05_inlet_stub              17.54    0.139
+03_slipon_flange          412.17    3.268
+04_head_pipe               76.37    0.606
+05_inlet_stub              15.70    0.124
 06_step_plate              24.67    0.196
-07_housing                128.43    1.018
+07_housing                131.75    1.045
 08_end_plate               20.76    0.165
 09_head_ring               14.25    0.113
 10_tube_gasket              1.38        -
@@ -53,4 +67,4 @@ part                  volume cm3  mass kg
 12_spacers                  0.72    0.006
 13_ring_bolts               1.17    0.009
 14_slip_sleeve             12.50    0.099
-fluid_volume             2674.00        -
+fluid_volume             2633.01        -

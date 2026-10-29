@@ -82,13 +82,13 @@ phase_prim = p("phase_prim", 0.0, "deg", "Primary holes: angle of first hole fro
 n_sec = p("n_sec", 14, "-", "Secondary holes: count")
 d_sec = p("d_sec", 4.5, "mm", "Secondary holes: diameter")
 x_sec = p("x_sec", 115.0, "mm", "Secondary holes: x")
-phase_sec = p("phase_sec", 0.0, "deg", "Secondary holes: angle of first hole from +Z", "assumed")
+phase_sec = p("phase_sec", 360.0 / n_sec / 2, "deg", "Secondary holes: half a secondary pitch off the primary reference row", "derived")
 n_dil_row = p("n_dil_row", 7, "-", "Dilution holes per row (2 staggered rows, 14 total)")
 d_dil = p("d_dil", 10.0, "mm", "Dilution holes: diameter")
 x_dil1 = p("x_dil1", 145.0, "mm", "Dilution row 1: x")
 x_dil2 = p("x_dil2", 170.0, "mm", "Dilution row 2: x")
-phase_dil1 = p("phase_dil1", 0.0, "deg", "Dilution row 1: angle of first hole from +Z", "assumed")
-phase_dil2 = p("phase_dil2", phase_dil1 + 180.0 / n_dil_row, "deg", "Dilution row 2: staggered by half a pitch", "derived")
+phase_dil1 = p("phase_dil1", 360.0 / n_dil_row / 8, "deg", "Dilution row 1: 1/8 dilution pitch, keeps it off the secondary holes", "derived")
+phase_dil2 = p("phase_dil2", phase_dil1 + 360.0 / n_dil_row / 2, "deg", "Dilution row 2: staggered half a pitch from row 1", "derived")
 
 # --- Hole area targets (from the air split, Cd 0.6) ----------------------------
 A_cool_target = p("A_cool_target", 87.1, "mm2", "Cooling hole area target")
@@ -106,8 +106,8 @@ head_OD = p("head_OD", 139.7, "mm", "Head pipe OD (DN125)")
 head_wall = p("head_wall", 2.0, "mm", "Head pipe wall (option 3.0)")
 head_ID = p("head_ID", head_OD - 2 * head_wall, "mm", "Head pipe ID", "derived")
 step_t = p("step_t", 4.0, "mm", "Flat step plate between DN125 head pipe and 108 housing (spec range 3-4, NOT a cone)", "assumed")
-stub_ID = p("stub_ID", 50.0, "mm", "Inlet stub ID (compressor delivery)")
-stub_OD = p("stub_OD", 55.0, "mm", "Inlet stub OD")
+stub_OD = p("stub_OD", 50.0, "mm", "Inlet stub OD (fits the existing 50.5 mm ID silicone hose)")
+stub_ID = p("stub_ID", stub_OD - 2 * wall, "mm", "Inlet stub ID (compressor delivery)", "derived")
 stub_protrude = p("stub_protrude", 40.0, "mm", "Stub height above the head pipe OD (to the compressor connection)", "assumed")
 
 # --- Flanges: EN 1092-1 PN6 DN125 -------------------------------------------------
@@ -116,7 +116,7 @@ flange_BCD = p("flange_BCD", 200.0, "mm", "Flange bolt circle diameter")
 n_flange_bolt = p("n_flange_bolt", 8, "-", "Flange bolts (M16)")
 flange_hole_d = p("flange_hole_d", 18.0, "mm", "Flange bolt hole diameter")
 flange_phase = p("flange_phase", 180.0 / n_flange_bolt, "deg", "Bolt holes straddle the vertical (stub) centreline", "derived")
-flange_t = p("flange_t", 14.0, "mm", "Flange thickness, blind and slip-on (placeholder)")
+flange_t = p("flange_t", 15.0, "mm", "Flange thickness, blind and slip-on (placeholder until the bought flange is measured)")
 flange_bore = p("flange_bore", 141.5, "mm", "Slip-on (type 01) flange bore for 139.7 pipe", "standard")
 fl_gasket_t = p("fl_gasket_t", 2.0, "mm", "Graphite flange gasket thickness (placeholder)")
 slipon_setback = p("slipon_setback", head_wall, "mm", "Pipe end set back inside the slip-on flange face (room for the internal fillet weld)", "assumed")
@@ -159,6 +159,8 @@ dil_LD_max = p("dil_LD_max", 1.8, "-", "Dilution mixing length, max (in liner di
 alpha_304 = p("alpha_304", 18e-6, "1/K", "304 thermal expansion")
 dT_liner = p("dT_liner", 700.0, "K", "Liner temperature rise, hot vs. assembly")
 T_amb = p("T_amb", 293.15, "K", "Assembly temperature")
+radial_hot_min = p("radial_hot_min", 0.3, "mm", "Flag if hot radial slip clearance falls below this")
+leak_frac_max = p("leak_frac_max", 0.05, "-", "Flag if slip-sleeve leak area exceeds this fraction of the liner hole area")
 rho_304 = p("rho_304", 7.93e-6, "kg/mm3", "304 density (mass estimate)")
 
 p("material", "AISI 304 body; E308L filler; graphite gaskets", "", "Materials (note only)", "note")
@@ -457,6 +459,13 @@ def run_checks(parts, fluid):
     chk(lig > 0, "No hole overlaps hole / bolt / spacer",
         f"min ligament {lig:.2f} mm ({a['row']} @ {a['theta']:.1f} deg vs {b['row']} @ {b['theta']:.1f} deg)")
 
+    # --- clocking: minimum angular separation between every pair of rows.
+    # Exact alignment (0 deg) puts a downstream jet directly behind an upstream one.
+    for (ra, _, na, _, _, pa), (rb, _, nb, _, _, pb) in combinations(ROWS, 2):
+        sep = min(abs((ta - tb + 180) % 360 - 180)
+                  for ta in angles(na, pa) for tb in angles(nb, pb))
+        chk(sep > 1e-6, f"Clocking {ra} / {rb}", f"min angular separation {sep:.3f} deg")
+
     # --- ring overlap: only the cooling row may sit over the ring
     zone_holes = [r for r in ROWS if r[1] != "cooling"]
     first_edge = min(x - d / 2 for (_, _, _, d, x, _) in zone_holes)
@@ -499,9 +508,9 @@ def run_checks(parts, fluid):
         f"stub edge x = {stub_edge:.2f}, flange back x = {flange_back:.2f}, clearance "
         f"{stub_edge - flange_back:.2f} >= hw_clear {hw_clear:.1f}")
     chk(abs(stub_x - (fl_gasket_t + flange_t + hw_clear + stub_OD / 2)) < eps, "stub_x formula",
-        f"stub_x = {fl_gasket_t} + {flange_t} + {hw_clear} + {stub_OD / 2} = {stub_x:.2f} (~65)")
+        f"stub_x = {fl_gasket_t} + {flange_t} + {hw_clear} + {stub_OD / 2} = {stub_x:.2f}")
     chk(abs(head_L - (stub_x + stub_OD / 2 + 10)) < eps, "head_L formula",
-        f"head_L = {stub_x:.2f} + {stub_OD / 2} + 10 = {head_L:.2f} (~100)")
+        f"head_L = {stub_x:.2f} + {stub_OD / 2} + 10 = {head_L:.2f}")
     chk(head_L - (stub_x + stub_OD / 2) >= 10 - eps, "Stub clear of step plate",
         f"{head_L - (stub_x + stub_OD / 2):.2f} mm weld room")
 
@@ -531,15 +540,39 @@ def run_checks(parts, fluid):
         f"tau = {tau_tot:.2f} ms over liner_L = {liner_L:.0f} mm (plug flow, film neglected)")
 
     # --- slip joint thermal growth
-    dL_liner = alpha_304 * dT_liner * main_L
-    dL_case = alpha_304 * (T3 - T_amb) * x_end_in
-    chk(dL_liner - dL_case < slip_axial, "Slip joint axial growth",
-        f"liner +{dL_liner:.2f}, casing +{dL_case:.2f} -> net {dL_liner - dL_case:.2f} mm "
-        f"< {slip_axial} mm clearance; cold engagement {sleeve_L - slip_axial:.1f} mm")
-    dD = alpha_304 * dT_liner * liner_OD - alpha_304 * (T3 - T_amb) * sleeve_ID
-    chk(dD < 2 * slip_radial, "Slip joint radial growth",
-        f"net diametral growth {dD:.2f} mm < diametral clearance {2 * slip_radial:.1f} mm "
-        f"(margin {2 * slip_radial - dD:.2f} mm)")
+    # Sleeve assumed at T3 (it sits in compressor air). The clearance formulas
+    # below do not credit the sleeve's own growth (conservative); the credited
+    # value is shown for reference only.
+    dD_liner = liner_OD * alpha_304 * dT_liner
+    rad_hot = slip_radial - dD_liner / 2
+    rad_hot_credit = rad_hot + sleeve_ID * alpha_304 * (T3 - T_amb) / 2
+    chk(rad_hot >= radial_hot_min, "Slip joint hot radial clearance",
+        f"liner hot diameter growth {dD_liner:.3f} mm; hot radial clearance = {slip_radial} - "
+        f"{dD_liner / 2:.3f} = {rad_hot:.3f} mm (flag < {radial_hot_min}); sleeve assumed at T3 = {T3:.0f} K, "
+        f"its growth not credited (with it: {rad_hot_credit:.3f} mm)")
+    A_holes = sum(math.pi * h["d"] ** 2 / 4 for h in HOLES)
+    A_leak = math.pi * (sleeve_ID ** 2 - liner_OD ** 2) / 4
+    chk(A_leak / A_holes <= leak_frac_max, "Slip sleeve leak area",
+        f"{A_leak:.1f} mm2 = {A_leak / A_holes * 100:.2f} % of liner hole area {A_holes:.1f} mm2 "
+        f"(flag > {leak_frac_max * 100:.0f} %)")
+    dL_liner = main_L * alpha_304 * dT_liner
+    ax_hot = slip_axial - dL_liner
+    chk(ax_hot > 0, "Slip joint hot axial clearance",
+        f"liner hot length growth {dL_liner:.2f} mm; hot axial clearance = {slip_axial} - "
+        f"{dL_liner:.2f} = {ax_hot:.2f} mm (casing growth not credited); cold engagement "
+        f"{sleeve_L - slip_axial:.1f} mm")
+
+    # --- inlet stub and head-section spacing
+    A_stub = math.pi * (stub_ID * 1e-3) ** 2 / 4
+    V_stub = m_dot / (rho3 * A_stub)
+    chk("INFO", "Inlet stub velocity",
+        f"V = m_dot / (rho3 * pi * stub_ID^2 / 4) = {V_stub:.1f} m/s (stub_ID {stub_ID:.1f} mm), "
+        f"q = {0.5 * rho3 * V_stub ** 2:.0f} Pa")
+    chk("INFO", "Step plate to secondary row",
+        f"x_sec - (head_L + step_t) = {x_sec:.1f} - {head_L + step_t:.1f} = {x_sec - head_L - step_t:.1f} mm")
+    chk("INFO", "Stub far edge to step plate",
+        f"head_L - (stub_x + stub_OD/2) = {head_L:.1f} - {stub_x + stub_OD / 2:.1f} = "
+        f"{head_L - stub_x - stub_OD / 2:.1f} mm")
 
     # --- solid model sanity
     worst_int = (0.0, "")
