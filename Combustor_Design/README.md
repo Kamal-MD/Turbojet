@@ -29,7 +29,7 @@ Every input is set in the `PARAMETERS` block at the top of the script.
 | `02_flange_gasket.STEP` | Full-face graphite flange gasket |
 | `03_slipon_flange.STEP` | Slip-on flange (EN 1092-1 type 01) on the head pipe |
 | `04_head_pipe.STEP` | DN125 head pipe with the stub hole |
-| `05_inlet_stub.STEP` | 55/50 inlet stub, saddle-cut to the head pipe (set-on branch) |
+| `05_inlet_stub.STEP` | 50/45 inlet stub (fits the 50.5 mm ID silicone hose), saddle-cut to the head pipe (set-on branch) |
 | `06_step_plate.STEP` | Flat annular plate from DN125 down to the 108 housing |
 | `07_housing.STEP` | 108 × 2.5 housing tube |
 | `08_end_plate.STEP` | End plate at the turbine end, with the gas outlet bore |
@@ -53,7 +53,11 @@ The PNG is not committed: it is regenerated from the SVG whenever `cairosvg` is 
 - **input**: from the design spec. Change one only after reviewing the design.
 - **derived**: calculated from the inputs.
 - **assumed**: a placeholder the model needed but the spec does not give, such as the spacer OD,
-  sleeve length, stub height, hole clocking or end plate thickness. Review these.
+  sleeve length, stub height or end plate thickness. Review these.
+
+Hole clocking: `phase_sec` is derived (half a secondary pitch) and `phase_dil1` is an input (2.5714°)
+chosen to maximise separation for 10 primary, 14 secondary and 2 × 7 dilution holes. Recheck it if any
+hole count changes.
 - **standard**: a value taken from a standard (fastener sizes, the flange bore). Check it against the
   supplier's catalogue.
 
