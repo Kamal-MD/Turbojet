@@ -1,0 +1,109 @@
+name,value,unit,kind,description
+wall,2.5,mm,input,"Wall of liner, ring and housing tube (stick-weld limit: thinner stock burns through)"
+liner_OD,76.1,mm,input,Main liner tube OD (common 76.1 x 2.5 tube)
+liner_ID,71.1,mm,derived,Main liner ID
+ring_OD,63.5,mm,input,"Head ring tube OD (sits inside the liner, forms the film slot)"
+ring_ID,58.5,mm,derived,Head ring ID
+ring_L,30,mm,input,Head ring length from the head plate; the cooling film exits at x = ring_L
+tube_gasket_t,1,mm,input,Graphite gasket between liner end and head plate (placeholder)
+liner_start,1,mm,derived,x of the liner upstream end (sits on the tube gasket)
+overlap_L,29,mm,derived,Axial overlap of liner over head ring (film path length)
+film_gap,3.8,mm,derived,Radial film-cooling slot between ring OD and liner ID
+liner_L,250,mm,input,x of the liner downstream end (liner length measured from x = 0)
+main_L,249,mm,derived,Physical length of the main liner tube
+n_bolt,3,-,input,Number of M4 bolts holding the liner on the head ring
+bolt_d,4,mm,input,Bolt nominal diameter (M4)
+bolt_hole_d,4.5,mm,input,"Bolt clearance hole, match-drilled through liner + ring together"
+x_bolt,9,mm,input,"x of the bolt row (head inside the ring, nut outside the liner)"
+phase_bolt,0,deg,assumed,Angle of the first bolt from +Z
+bolt_head_AF,7,mm,standard,M4 hex head across flats (ISO 4017)
+bolt_head_k,2.8,mm,standard,M4 hex head height (ISO 4017)
+nut_AF,7,mm,standard,M4 nut across flats (ISO 4032)
+nut_m,3.2,mm,standard,M4 nut height (ISO 4032)
+spacer_OD,10,mm,assumed,"Spacer (film-gap distance piece) OD, one per bolt"
+n_cool,28,-,input,Cooling holes: count
+d_cool,2,mm,input,Cooling holes: diameter
+x_cool,18,mm,input,"Cooling holes: x (liner wall over the ring -> feed the film slot, film exits at x = ring_L)"
+phase_cool,0,deg,assumed,Cooling holes: angle of first hole from +Z
+n_prim,10,-,input,Primary holes: count
+d_prim,6.5,mm,input,Primary holes: diameter
+x_prim,62,mm,input,Primary holes: x
+phase_prim,0,deg,assumed,Primary holes: angle of first hole from +Z
+n_sec,14,-,input,Secondary holes: count
+d_sec,4.5,mm,input,Secondary holes: diameter
+x_sec,115,mm,input,Secondary holes: x
+phase_sec,12.8571,deg,derived,Secondary holes: half a secondary pitch off the primary reference row
+n_dil_row,7,-,input,"Dilution holes per row (2 staggered rows, 14 total)"
+d_dil,10,mm,input,Dilution holes: diameter
+x_dil1,145,mm,input,Dilution row 1: x
+x_dil2,170,mm,input,Dilution row 2: x
+phase_dil1,2.5714,deg,input,"Dilution row 1: chosen to maximise separation for n_prim=10, n_sec=14, n_dil_row=7; recheck if any count changes"
+phase_dil2,28.2857,deg,derived,Dilution row 2: staggered half a pitch from row 1
+A_cool_target,87.1,mm2,input,Cooling hole area target
+A_prim_target,329,mm2,input,Primary hole area target
+A_sec_target,219.4,mm2,input,Secondary hole area target
+A_dil_target,1105.5,mm2,input,Dilution hole area target
+area_tol,0.03,-,input,Allowed relative deviation of drilled area from target
+housing_OD,108,mm,input,"Housing tube OD (bolted assembly, not welded to the liner; graphite gaskets)"
+housing_ID,103,mm,input,Housing tube ID
+head_OD,139.7,mm,input,Head pipe OD (DN125)
+head_wall,2,mm,input,Head pipe wall (option 3.0)
+head_ID,135.7,mm,derived,Head pipe ID
+step_t,4,mm,assumed,"Flat step plate between DN125 head pipe and 108 housing (spec range 3-4, NOT a cone)"
+stub_OD,50,mm,input,Inlet stub OD (fits the existing 50.5 mm ID silicone hose)
+stub_ID,45,mm,derived,Inlet stub ID (compressor delivery)
+stub_protrude,40,mm,assumed,Stub height above the head pipe OD (to the compressor connection)
+flange_OD,240,mm,input,Flange OD (EN 1092-1 PN6 DN125)
+flange_BCD,200,mm,input,Flange bolt circle diameter
+n_flange_bolt,8,-,input,Flange bolts (M16)
+flange_hole_d,18,mm,input,Flange bolt hole diameter
+flange_phase,22.5,deg,derived,Bolt holes straddle the vertical (stub) centreline
+flange_t,15,mm,input,"Flange thickness, blind and slip-on (placeholder until the bought flange is measured)"
+flange_bore,141.5,mm,standard,Slip-on (type 01) flange bore for 139.7 pipe
+fl_gasket_t,2,mm,input,Graphite flange gasket thickness (placeholder)
+slipon_setback,2,mm,assumed,Pipe end set back inside the slip-on flange face (room for the internal fillet weld)
+hw_clear,19,mm,input,"Clearance behind slip-on flange for M16 nuts + spanner, up to the stub edge"
+stub_x,61,mm,derived,x of the stub axis = fl_gasket_t + flange_t + hw_clear + stub_OD/2
+head_L,96,mm,derived,Head pipe end / step plate upstream face = stub_x + stub_OD/2 + 10
+slip_axial,5,mm,input,"Cold axial clearance, liner end -> end plate (liner grows ~3 mm hot)"
+slip_radial,0.5,mm,input,Radial clearance liner OD -> slip sleeve ID
+sleeve_ID,77.1,mm,derived,Slip sleeve ID
+sleeve_OD,82.1,mm,derived,Slip sleeve OD
+sleeve_L,20,mm,assumed,Slip sleeve length (cold engagement = sleeve_L - slip_axial)
+end_t,4,mm,assumed,End plate thickness (same plate stock as the step plate)
+end_hole_d,71.1,mm,derived,End plate gas outlet bore (exit transition to turbine not modelled)
+x_end_in,255,mm,derived,x of the end plate inner face
+m_dot,0.212,kg/s,input,Air mass flow (HX35 map)
+rho3,2.118,kg/m3,input,Compressor delivery air density
+V_an_min,25,m/s,input,"Annulus air speed target, low"
+V_an_max,30,m/s,input,"Annulus air speed target, high"
+far,0.01213,-,input,Overall fuel/air ratio
+P3,243180,Pa,input,Combustor inlet pressure
+T3,400,K,input,Combustor inlet temperature
+liner_dp,0.04,-,input,Liner pressure drop / P3
+R_gas,288,J/kg K,input,Hot gas constant (products ~ air)
+air_prim,0.189,-,input,Cumulative air fraction in the primary zone
+air_sec,0.315,-,input,Cumulative air fraction in the secondary zone
+T_prim,2337,K,input,Primary zone temperature (Cantera)
+T_sec,1777,K,input,Secondary zone temperature (Cantera)
+T4,880,K,input,Turbine inlet temperature target
+L_prim,70,mm,input,Primary zone length (x = 0 .. L_prim)
+L_sec,60,mm,input,Secondary zone length
+L_dil,120,mm,derived,Dilution zone length (rest of the liner)
+tau_prim,0.002,s,input,Primary residence time target (~20x propane chemistry)
+tau_sec,0.0015,s,input,Secondary residence time target (CO burnout)
+dil_LD_min,1.5,-,input,"Dilution mixing length, min (in liner diameters)"
+dil_LD_max,1.8,-,input,"Dilution mixing length, max (in liner diameters)"
+alpha_304,1.8e-05,1/K,input,304 thermal expansion
+dT_liner,700,K,input,"Liner temperature rise, hot vs. assembly"
+T_amb,293.15,K,input,Assembly temperature
+T_sleeve_min,400,K,assumed,"Slip sleeve temperature, low end (~T3, cooled by annulus air)"
+T_sleeve_max,700,K,assumed,"Slip sleeve temperature, high end (heated by the liner it touches)"
+radial_hot_min,0.1,mm,input,WARN if hot radial slip clearance in the T_sleeve_min case falls below this
+leak_frac_max,0.05,-,input,"Reference level for slip-sleeve leak area / liner hole area (reported, INFO only)"
+clock_min_sep,2.5,deg,input,WARN if two non-cooling hole rows are closer than this in angle
+rho_304,7.93e-06,kg/mm3,input,304 density (mass estimate)
+material,AISI 304 body; E308L filler; graphite gaskets,,note,Materials (note only)
+bolt_note,Match-drill the 3 bolt holes through liner + ring + spacers in one setup,,note,Shop note
+slip_note,Apply anti-seize / graphite paste to liner OD in the sleeve (galling),,note,Shop note
+bolt_len,14,mm,derived,M4 bolt length (next standard length that shows ~2 threads past the nut)
