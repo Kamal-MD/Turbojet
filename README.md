@@ -123,4 +123,4 @@ another; 2.571° is the best possible separation between 10-hole and 14-hole row
 - Not modelled yet: exit transition to the T3 turbine flange, fuel injector, igniter
 - Shop drawings, one per part, after CFD
 
-Note: Not for flight
+Note: Although I originally planned to model a turbojet for manufacture (and I still might), my current goal is a turbojet design study
