@@ -44,6 +44,7 @@ Every input is set in the `PARAMETERS` block at the top of the script.
 | `half_section.svg` / `.png` | Section through the engine axis and the stub axis (plane y = 0) |
 | `parameters.csv` | Every parameter with its value, unit, kind and description |
 | `checks.txt` | PASS/WARN check table, plus volume and mass of each part |
+| `verify.txt` | STEP read-back: liner hole rows found in `11_main_liner.STEP` vs. parameters, and pairwise interference of the solids in `assembly.STEP` (written by `verify_step.py`, which runs automatically at the end of the export) |
 
 The PNG is not committed: it is regenerated from the SVG whenever `cairosvg` is installed.
 
@@ -64,7 +65,8 @@ The PNG is not committed: it is regenerated from the SVG whenever `cairosvg` is 
 - Cooling air enters through 28 × 2.0 holes at x = 18, drilled through the liner only. It runs along
   the slot and leaves as a wall film at the ring end (x = 30).
 - At the turbine end the liner slides in a sleeve, with 0.5 mm radial and 5 mm axial clearance. The
-  liner is therefore fixed only at the head end and can grow freely when hot.
+  liner is therefore fixed only at the head end and can grow freely when hot. Shop note: apply
+  anti-seize / graphite paste to the liner OD inside the sleeve to prevent galling.
 - Not modelled: fuel injector, igniter, M16 flange bolts, welds, and the exit transition to the HX35 T3
   turbine flange.
 

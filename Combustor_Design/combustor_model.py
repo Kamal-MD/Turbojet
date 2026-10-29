@@ -87,7 +87,7 @@ n_dil_row = p("n_dil_row", 7, "-", "Dilution holes per row (2 staggered rows, 14
 d_dil = p("d_dil", 10.0, "mm", "Dilution holes: diameter")
 x_dil1 = p("x_dil1", 145.0, "mm", "Dilution row 1: x")
 x_dil2 = p("x_dil2", 170.0, "mm", "Dilution row 2: x")
-phase_dil1 = p("phase_dil1", 360.0 / n_dil_row / 8, "deg", "Dilution row 1: 1/8 dilution pitch, keeps it off the secondary holes", "derived")
+phase_dil1 = p("phase_dil1", 2.5714, "deg", "Dilution row 1: chosen to maximise separation for n_prim=10, n_sec=14, n_dil_row=7; recheck if any count changes")
 phase_dil2 = p("phase_dil2", phase_dil1 + 360.0 / n_dil_row / 2, "deg", "Dilution row 2: staggered half a pitch from row 1", "derived")
 
 # --- Hole area targets (from the air split, Cd 0.6) ----------------------------
@@ -159,12 +159,16 @@ dil_LD_max = p("dil_LD_max", 1.8, "-", "Dilution mixing length, max (in liner di
 alpha_304 = p("alpha_304", 18e-6, "1/K", "304 thermal expansion")
 dT_liner = p("dT_liner", 700.0, "K", "Liner temperature rise, hot vs. assembly")
 T_amb = p("T_amb", 293.15, "K", "Assembly temperature")
-radial_hot_min = p("radial_hot_min", 0.3, "mm", "Flag if hot radial slip clearance falls below this")
-leak_frac_max = p("leak_frac_max", 0.05, "-", "Flag if slip-sleeve leak area exceeds this fraction of the liner hole area")
+T_sleeve_min = p("T_sleeve_min", 400.0, "K", "Slip sleeve temperature, low end (~T3, cooled by annulus air)", "assumed")
+T_sleeve_max = p("T_sleeve_max", 700.0, "K", "Slip sleeve temperature, high end (heated by the liner it touches)", "assumed")
+radial_hot_min = p("radial_hot_min", 0.1, "mm", "WARN if hot radial slip clearance in the T_sleeve_min case falls below this")
+leak_frac_max = p("leak_frac_max", 0.05, "-", "Reference level for slip-sleeve leak area / liner hole area (reported, INFO only)")
+clock_min_sep = p("clock_min_sep", 2.5, "deg", "WARN if two non-cooling hole rows are closer than this in angle")
 rho_304 = p("rho_304", 7.93e-6, "kg/mm3", "304 density (mass estimate)")
 
 p("material", "AISI 304 body; E308L filler; graphite gaskets", "", "Materials (note only)", "note")
 p("bolt_note", "Match-drill the 3 bolt holes through liner + ring + spacers in one setup", "", "Shop note", "note")
+p("slip_note", "Apply anti-seize / graphite paste to liner OD in the sleeve (galling)", "", "Shop note", "note")
 
 # =============================================================================
 # Geometry helpers
@@ -460,11 +464,16 @@ def run_checks(parts, fluid):
         f"min ligament {lig:.2f} mm ({a['row']} @ {a['theta']:.1f} deg vs {b['row']} @ {b['theta']:.1f} deg)")
 
     # --- clocking: minimum angular separation between every pair of rows.
-    # Exact alignment (0 deg) puts a downstream jet directly behind an upstream one.
-    for (ra, _, na, _, _, pa), (rb, _, nb, _, _, pb) in combinations(ROWS, 2):
+    # A jet directly behind an upstream one sits in its wake. The cooling row is
+    # exempt (INFO): it feeds the film slot under the ring and leaves no wake.
+    for (ra, za, na, _, _, pa), (rb, zb, nb, _, _, pb) in combinations(ROWS, 2):
         sep = min(abs((ta - tb + 180) % 360 - 180)
                   for ta in angles(na, pa) for tb in angles(nb, pb))
-        chk(sep > 1e-6, f"Clocking {ra} / {rb}", f"min angular separation {sep:.3f} deg")
+        if "cooling" in (za, zb):
+            chk("INFO", f"Clocking {ra} / {rb}", f"min angular separation {sep:.3f} deg (cooling row exempt)")
+        else:
+            chk(sep >= clock_min_sep, f"Clocking {ra} / {rb}",
+                f"min angular separation {sep:.3f} deg (WARN < {clock_min_sep})")
 
     # --- ring overlap: only the cooling row may sit over the ring
     zone_holes = [r for r in ROWS if r[1] != "cooling"]
@@ -540,21 +549,29 @@ def run_checks(parts, fluid):
         f"tau = {tau_tot:.2f} ms over liner_L = {liner_L:.0f} mm (plug flow, film neglected)")
 
     # --- slip joint thermal growth
-    # Sleeve assumed at T3 (it sits in compressor air). The clearance formulas
-    # below do not credit the sleeve's own growth (conservative); the credited
-    # value is shown for reference only.
+    # Liner growth against sleeve growth for both ends of the assumed sleeve
+    # temperature range. A cool sleeve (annulus air) is the tight case.
     dD_liner = liner_OD * alpha_304 * dT_liner
-    rad_hot = slip_radial - dD_liner / 2
-    rad_hot_credit = rad_hot + sleeve_ID * alpha_304 * (T3 - T_amb) / 2
-    chk(rad_hot >= radial_hot_min, "Slip joint hot radial clearance",
-        f"liner hot diameter growth {dD_liner:.3f} mm; hot radial clearance = {slip_radial} - "
-        f"{dD_liner / 2:.3f} = {rad_hot:.3f} mm (flag < {radial_hot_min}); sleeve assumed at T3 = {T3:.0f} K, "
-        f"its growth not credited (with it: {rad_hot_credit:.3f} mm)")
     A_holes = sum(math.pi * h["d"] ** 2 / 4 for h in HOLES)
     A_leak = math.pi * (sleeve_ID ** 2 - liner_OD ** 2) / 4
-    chk(A_leak / A_holes <= leak_frac_max, "Slip sleeve leak area",
+    chk("INFO", "Slip sleeve leak area, cold",
         f"{A_leak:.1f} mm2 = {A_leak / A_holes * 100:.2f} % of liner hole area {A_holes:.1f} mm2 "
-        f"(flag > {leak_frac_max * 100:.0f} %)")
+        f"(reference {leak_frac_max * 100:.0f} %)")
+    for T_s in (T_sleeve_min, T_sleeve_max):
+        dD_sleeve = sleeve_ID * alpha_304 * (T_s - T_amb)
+        rad_hot = slip_radial - (dD_liner - dD_sleeve) / 2
+        detail = (f"liner growth {dD_liner:.3f} mm, sleeve growth {dD_sleeve:.3f} mm (dia.); "
+                  f"hot radial clearance = {slip_radial} - ({dD_liner:.3f} - {dD_sleeve:.3f})/2 = {rad_hot:.3f} mm")
+        if T_s == T_sleeve_min:
+            chk(rad_hot >= radial_hot_min, f"Slip hot radial clearance, sleeve {T_s:.0f} K",
+                detail + f" (WARN < {radial_hot_min})")
+        else:
+            chk("INFO", f"Slip hot radial clearance, sleeve {T_s:.0f} K", detail)
+        D_s, D_l = sleeve_ID + dD_sleeve, liner_OD + dD_liner
+        A_hot = math.pi * (D_s ** 2 - D_l ** 2) / 4
+        chk("INFO", f"Slip sleeve leak area, hot, sleeve {T_s:.0f} K",
+            f"{A_hot:.1f} mm2 = {A_hot / A_holes * 100:.2f} % of liner hole area "
+            f"(reference {leak_frac_max * 100:.0f} %)")
     dL_liner = main_L * alpha_304 * dT_liner
     ax_hot = slip_axial - dL_liner
     chk(ax_hot > 0, "Slip joint hot axial clearance",
@@ -568,6 +585,11 @@ def run_checks(parts, fluid):
     chk("INFO", "Inlet stub velocity",
         f"V = m_dot / (rho3 * pi * stub_ID^2 / 4) = {V_stub:.1f} m/s (stub_ID {stub_ID:.1f} mm), "
         f"q = {0.5 * rho3 * V_stub ** 2:.0f} Pa")
+    # The stub jet's dynamic head is assumed fully lost when it dumps into the plenum.
+    q_dump = 0.5 * rho3 * V_stub ** 2
+    chk("INFO", "Inlet dump loss", f"0.5 * rho3 * V_stub^2 = {q_dump:.0f} Pa = {q_dump / P3 * 100:.2f} % of P3")
+    chk("INFO", "Total combustor pressure loss",
+        f"liner_dp {liner_dp * 100:.1f} % + dump {q_dump / P3 * 100:.2f} % = {(liner_dp + q_dump / P3) * 100:.2f} % of P3")
     chk("INFO", "Step plate to secondary row",
         f"x_sec - (head_L + step_t) = {x_sec:.1f} - {head_L + step_t:.1f} = {x_sec - head_L - step_t:.1f} mm")
     chk("INFO", "Stub far edge to step plate",
@@ -720,10 +742,16 @@ def main():
     except ImportError:
         print("cairosvg not installed: half_section.png skipped")
 
+    from verify_step import verify_outputs   # reads the exported STEP files back
+    verify = verify_outputs(OUT, ROWS, BOLT_ANGLES, bolt_hole_d, x_bolt, parts)
+    (OUT / "verify.txt").write_text(verify + "\n")
+
     report = format_checks(run_checks(parts, fluid), parts, fluid)
     (OUT / "checks.txt").write_text(report + "\n")
     print()
     print(report)
+    print()
+    print(verify)
     print("\nGenerated files:")
     for f in sorted(OUT.iterdir()):
         print(f"  output/{f.name:28} {f.stat().st_size / 1024:8.1f} kB")

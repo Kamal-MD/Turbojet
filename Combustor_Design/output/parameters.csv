@@ -37,8 +37,8 @@ n_dil_row,7,-,input,"Dilution holes per row (2 staggered rows, 14 total)"
 d_dil,10,mm,input,Dilution holes: diameter
 x_dil1,145,mm,input,Dilution row 1: x
 x_dil2,170,mm,input,Dilution row 2: x
-phase_dil1,6.42857,deg,derived,"Dilution row 1: 1/8 dilution pitch, keeps it off the secondary holes"
-phase_dil2,32.1429,deg,derived,Dilution row 2: staggered half a pitch from row 1
+phase_dil1,2.5714,deg,input,"Dilution row 1: chosen to maximise separation for n_prim=10, n_sec=14, n_dil_row=7; recheck if any count changes"
+phase_dil2,28.2857,deg,derived,Dilution row 2: staggered half a pitch from row 1
 A_cool_target,87.1,mm2,input,Cooling hole area target
 A_prim_target,329,mm2,input,Primary hole area target
 A_sec_target,219.4,mm2,input,Secondary hole area target
@@ -97,9 +97,13 @@ dil_LD_max,1.8,-,input,"Dilution mixing length, max (in liner diameters)"
 alpha_304,1.8e-05,1/K,input,304 thermal expansion
 dT_liner,700,K,input,"Liner temperature rise, hot vs. assembly"
 T_amb,293.15,K,input,Assembly temperature
-radial_hot_min,0.3,mm,input,Flag if hot radial slip clearance falls below this
-leak_frac_max,0.05,-,input,Flag if slip-sleeve leak area exceeds this fraction of the liner hole area
+T_sleeve_min,400,K,assumed,"Slip sleeve temperature, low end (~T3, cooled by annulus air)"
+T_sleeve_max,700,K,assumed,"Slip sleeve temperature, high end (heated by the liner it touches)"
+radial_hot_min,0.1,mm,input,WARN if hot radial slip clearance in the T_sleeve_min case falls below this
+leak_frac_max,0.05,-,input,"Reference level for slip-sleeve leak area / liner hole area (reported, INFO only)"
+clock_min_sep,2.5,deg,input,WARN if two non-cooling hole rows are closer than this in angle
 rho_304,7.93e-06,kg/mm3,input,304 density (mass estimate)
 material,AISI 304 body; E308L filler; graphite gaskets,,note,Materials (note only)
 bolt_note,Match-drill the 3 bolt holes through liner + ring + spacers in one setup,,note,Shop note
+slip_note,Apply anti-seize / graphite paste to liner OD in the sleeve (galling),,note,Shop note
 bolt_len,14,mm,derived,M4 bolt length (next standard length that shows ~2 threads past the nut)

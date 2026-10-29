@@ -1,0 +1,36 @@
+STEP read-back: 11_main_liner.STEP
+row         count      d       x first angle   expected (count, d, x, angle)
+bolt            3   4.50    9.00      0.0000   3, 4.5, 9.0, 0.0000  MATCH
+cooling        28   2.00   18.00      0.0000   28, 2.0, 18.0, 0.0000  MATCH
+primary        10   6.50   62.00      0.0000   10, 6.5, 62.0, 0.0000  MATCH
+secondary      14   4.50  115.00     12.8571   14, 4.5, 115.0, 12.8571  MATCH
+dilution_1      7  10.00  145.00      2.5714   7, 10.0, 145.0, 2.5714  MATCH
+dilution_2      7  10.00  170.00     28.2857   7, 10.0, 170.0, 28.2857  MATCH
+RESULT: all rows match
+
+Interference: assembly.STEP, 21 solids (0 unmatched)
+  no overlapping solids (volume > 1e-4 mm3)
+  touching pairs (contact, zero overlap):
+    01_blind_flange    - 02_flange_gasket
+    01_blind_flange    - 09_head_ring
+    01_blind_flange    - 10_tube_gasket
+    02_flange_gasket   - 03_slipon_flange
+    04_head_pipe       - 05_inlet_stub
+    04_head_pipe       - 06_step_plate
+    06_step_plate      - 07_housing
+    07_housing         - 08_end_plate
+    08_end_plate       - 14_slip_sleeve
+    09_head_ring       - 10_tube_gasket
+    09_head_ring       - 12_spacers
+    09_head_ring       - 12_spacers
+    09_head_ring       - 12_spacers
+    10_tube_gasket     - 11_main_liner
+    11_main_liner      - 12_spacers
+    11_main_liner      - 12_spacers
+    11_main_liner      - 12_spacers
+    11_main_liner      - 13_ring_bolts
+    11_main_liner      - 13_ring_bolts
+    11_main_liner      - 13_ring_bolts
+    13_ring_bolts      - 13_ring_bolts
+    13_ring_bolts      - 13_ring_bolts
+    13_ring_bolts      - 13_ring_bolts
