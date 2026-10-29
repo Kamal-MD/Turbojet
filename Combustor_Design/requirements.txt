@@ -1,0 +1,4 @@
+# CadQuery needs Python 3.10-3.12
+cadquery==2.8.0
+# optional: converts half_section.svg to half_section.png
+cairosvg>=2.7
